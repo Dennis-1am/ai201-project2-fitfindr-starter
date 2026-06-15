@@ -20,7 +20,7 @@ from groq import Groq
 from utils.data_loader import load_listings
 
 load_dotenv()
-LLM_MODEL = "llama-3.3-70b-versatile"
+_LLM_MODEL = "llama-3.3-70b-versatile"
 
 # ── Groq client ───────────────────────────────────────────────────────────────
 
