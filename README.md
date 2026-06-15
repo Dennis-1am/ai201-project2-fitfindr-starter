@@ -551,6 +551,8 @@ print(caption)
 
 ## AI USAGE
 
-**General Usage** Used Gemini & Claude in conjunction to debug and generate code.
-**Instance One**  Used Gemini to explain errors from the Groq API i.e. when the API would throw validation errors when attempting to use a function that did not exist. Gemini suggested I update the system prompt to be more strict about what tools are avalaible. So thats what I ended up doing and it fixed it.
-**Instance Two** Used Claude to iterate on the implementation for the agent loop. First I coded it up myself when I got stuck I asked claude for feedback. I also used Gemini to help me think about solutions to prevent the LLM from using tools that it shouldn't be using and it came up with the dynamic tooling solution which I liked. Since it Gemini already came up with the solution I simply asked it to generate the code for it and then refactored some of it before I pushed it out.
+**General Usage** - Used Gemini & Claude in conjunction to debug and generate code.
+
+**Instance One** - Used Gemini to explain errors from the Groq API i.e. when the API would throw validation errors when attempting to use a function that did not exist. Gemini suggested I update the system prompt to be more strict about what tools are avalaible. So thats what I ended up doing and it fixed it.
+
+**Instance Two** - Used Claude to iterate on the implementation for the agent loop. First I coded it up myself when I got stuck I asked claude for feedback. I also used Gemini to help me think about solutions to prevent the LLM from using tools that it shouldn't be using and it came up with the dynamic tooling solution which I liked. Since it Gemini already came up with the solution I simply asked it to generate the code for it and then refactored some of it before I pushed it out.
