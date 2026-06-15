@@ -20,7 +20,7 @@ from groq import Groq
 from utils.data_loader import load_listings
 
 load_dotenv()
-
+_LLM_MODEL = "llama-3.3-70b-versatile"
 
 # ── Groq client ───────────────────────────────────────────────────────────────
 
@@ -69,8 +69,35 @@ def search_listings(
 
     Before writing code, fill in the Tool 1 section of planning.md.
     """
-    # Replace this with your implementation
-    return []
+    listings = load_listings()
+
+    # Filter by price and size
+    filtered = []
+    for listing in listings:
+        if max_price is not None and listing["price"] > max_price:
+            continue
+        if size is not None and size.lower() not in listing["size"].lower():
+            continue
+        filtered.append(listing)
+
+    # Score by keyword overlap with description
+    keywords = set(description.lower().split())
+    scored = []
+    for listing in filtered:
+        searchable = " ".join([
+            listing["title"],
+            listing["description"],
+            listing["category"],
+            " ".join(listing.get("style_tags", [])),
+            " ".join(listing.get("colors", [])),
+            listing.get("brand") or "",
+        ]).lower()
+        score = sum(1 for kw in keywords if kw in searchable)
+        if score > 0: # can adjust to make more accurate
+            scored.append((score, listing))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [listing for _, listing in scored]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -100,8 +127,39 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     Before writing code, fill in the Tool 2 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    item_summary = (
+        f"{new_item.get('title', 'item')} — {new_item.get('description', '')} "
+        f"(Size: {new_item.get('size', 'N/A')}, Color(s): {', '.join(new_item.get('colors', []))}, "
+        f"${new_item.get('price', '?')})"
+    )
+
+    wardrobe_items = wardrobe.get("items", [])
+    if not wardrobe_items:
+        prompt = (
+            f"A user is considering buying this thrifted item:\n{item_summary}\n\n"
+            "Their wardrobe is empty. Give general styling advice: what types of pieces "
+            "pair well with this item, what aesthetic or vibe it suits, and how to build "
+            "an outfit around it. Keep it friendly and specific."
+        )
+    else:
+        wardrobe_text = "\n".join(
+            f"- {item.get('name', 'Unknown')} ({item.get('category', '')}): "
+            f"{item.get('color', '')} {item.get('brand', '')}".strip()
+            for item in wardrobe_items
+        )
+        prompt = (
+            f"A user is considering buying this thrifted item:\n{item_summary}\n\n"
+            f"Their current wardrobe includes:\n{wardrobe_text}\n\n"
+            "Suggest 1–2 complete outfits using the new item and specific pieces from "
+            "the wardrobe. Be specific about which wardrobe items to pair together and why."
+        )
+
+    client = _get_groq_client()
+    response = client.chat.completions.create(
+        model=_LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -132,6 +190,33 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         3. Call the LLM and return the response.
 
     Before writing code, fill in the Tool 3 section of planning.md.
-    """
-    # Replace this with your implementation
-    return ""
+        """
+    if not outfit or not outfit.strip():
+        return (
+            "No caption could be generated because no outfit suggestion is available. "
+            "Try adding items to your wardrobe to get outfit suggestions first."
+        )
+
+    client = _get_groq_client()
+    item_name = new_item.get("title", "this find")
+    price = new_item.get("price", "?")
+    platform = new_item.get("platform", "a thrift platform")
+
+    prompt = (
+        f"Write a 2–4 sentence Instagram/TikTok caption for this thrifted outfit.\n\n"
+        f"Item: {item_name} — ${price} from {platform}\n"
+        f"Outfit: {outfit}\n\n"
+        "Guidelines:\n"
+        "- Sound casual and authentic like a real OOTD post, not a product description\n"
+        "- Mention the item name, price, and platform naturally (once each)\n"
+        "- Capture the outfit vibe in specific, vivid terms\n"
+        "- Keep it 2–4 sentences total\n"
+        "Output only the caption text, nothing else."
+    )
+
+    response = client.chat.completions.create(
+        model=_LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.9,
+    )
+    return response.choices[0].message.content
