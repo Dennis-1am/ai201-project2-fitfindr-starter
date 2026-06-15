@@ -20,18 +20,23 @@ from groq import Groq
 from utils.data_loader import load_listings
 
 load_dotenv()
-_LLM_MODEL = "llama-3.3-70b-versatile"
+LLM_MODEL = "llama-3.3-70b-versatile"
 
 # ── Groq client ───────────────────────────────────────────────────────────────
 
-def _get_groq_client():
-    """Initialize and return a Groq client using GROQ_API_KEY from .env."""
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "GROQ_API_KEY not set. Add it to a .env file in the project root."
-        )
-    return Groq(api_key=api_key)
+_client: Groq | None = None
+
+def _get_groq_client() -> Groq:
+    """Initialize and return a shared Groq client using GROQ_API_KEY from .env."""
+    global _client
+    if _client is None:
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "GROQ_API_KEY not set. Add it to a .env file in the project root."
+            )
+        _client = Groq(api_key=api_key)
+    return _client
 
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
